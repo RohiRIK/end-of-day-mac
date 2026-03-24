@@ -1,0 +1,4 @@
+.DS_Store
+*.o
+*.d
+EndOfDay.app/Contents/MacOS/EndOfDay
