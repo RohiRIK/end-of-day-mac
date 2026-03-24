@@ -1,183 +1,80 @@
-# End-of-Day App Closure
+# EndOfDay.app
 
-Closes your work apps at the end of each day via a native macOS dialog.
-Scheduled daily at **18:30** using launchd. Zero dependencies — pure Bash + osascript.
+> A macOS menu bar app that closes your work apps at the end of the day — automatically.
 
-## Quick Start
-
-```bash
-bash scripts/install.sh
-```
-
-That's it. The installer runs onboarding, sets up the schedule, and verifies everything.
+<p align="center">
+  <img src="EndOfDay.app/Contents/Resources/MenuBarIcon@2x.png" width="72" alt="App Icon">
+</p>
 
 ---
 
-## How It Works
+## Screenshots
 
-### Setup Flow (run once)
-
-```
-┌─────────────────────────────────────┐
-│         bash install.sh             │
-└──────────────────┬──────────────────┘
-                   │
-                   ▼
-        ┌──────────────────────┐
-        │  chmod +x scripts    │
-        └──────────┬───────────┘
-                   │
-                   ▼
-        ┌──────────────────────────────────────┐
-        │          onboarding.sh               │
-        │                                      │
-        │  ╔══════════════════════════════╗    │
-        │  ║  macOS "choose from list"    ║    │
-        │  ║                              ║    │
-        │  ║  [x] Microsoft Outlook       ║    │
-        │  ║  [x] Microsoft Teams         ║    │
-        │  ║  [ ] Slack                   ║    │
-        │  ║  [x] Microsoft Edge          ║    │
-        │  ║  [ ] Zoom          [Cancel]  ║    │
-        │  ║                    [  OK  ]  ║    │
-        │  ╚══════════════════════════════╝    │
-        └──────────┬───────────────────────────┘
-                   │  saves selection
-                   ▼
-        ┌──────────────────────────────┐
-        │  ~/.config/end_of_day/       │
-        │  apps.conf                   │
-        └──────────┬───────────────────┘
-                   │
-                   ▼
-        ┌──────────────────────────────────────────────────┐
-        │  generate plist  →  ~/Library/LaunchAgents/      │
-        │  launchctl bootstrap  (Ventura+)                  │
-        │  launchctl load       (older macOS)               │
-        └──────────┬───────────────────────────────────────┘
-                   │
-                   ▼
-        ┌──────────────────────────────┐
-        │  ✓ Agent registered          │
-        │    Runs daily at 18:30       │
-        └──────────────────────────────┘
-```
-
-### Daily Runtime Flow (18:30, triggered by launchd)
-
-```
-  ┌────────────────────────────┐
-  │     launchd  @  18:30      │
-  └─────────────┬──────────────┘
-                │
-                ▼
-  ┌─────────────────────────────────┐
-  │  read ~/.config/end_of_day/     │
-  │  apps.conf                      │
-  └─────────────┬───────────────────┘
-                │
-                ▼
-         ┌──────┴──────┐
-         │ any app     │
-         │  running?   │
-         └──┬───────┬──┘
-           YES      NO
-            │        └──────────────────────► exit silently
-            ▼
-  ┌─────────────────────────────────┐
-  │  🔔  notification banner        │
-  │      "Time to wrap up 🌅"       │
-  │      "Apps closing in 30s"      │
-  └─────────────┬───────────────────┘
-                │
-                ▼
-  ┌──────────────────────────────────────┐
-  │  ╔════════════════════════════════╗  │
-  │  ║   End of Day                   ║  │
-  │  ║                                ║  │
-  │  ║  It's the end of the day! 🌅   ║  │
-  │  ║  Work apps are about to close. ║  │
-  │  ║  Auto-confirms in 30s.         ║  │
-  │  ║                                ║  │
-  │  ║  [ Not Now ]  [Close Apps Now] ║  │
-  │  ╚════════════════════════════════╝  │
-  └──────────┬──────────────┬────────────┘
-             │              │
-          Not Now    Close / Timeout
-             │              │
-             ▼              ▼
-           exit    ┌────────────────────────────┐
-                   │  tell application X to quit │
-                   │  (pkill fallback)            │
-                   └────────────┬────────────────┘
-                                │
-                                ▼
-                   ┌────────────────────────────────┐
-                   │  🔔  result notification        │
-                   │                                 │
-                   │  ╔═════════════════════════╗   │
-                   │  ║  End of Day — Done  🌙   ║   │
-                   │  ║                          ║   │
-                   │  ║  Closed 3 app(s):        ║   │
-                   │  ║  • Microsoft Outlook     ║   │
-                   │  ║  • Microsoft Teams       ║   │
-                   │  ║  • Microsoft Edge        ║   │
-                   │  ║              [Great, thanks!]║  │
-                   │  ╚═════════════════════════╝   │
-                   │      (auto-dismisses in 10s)    │
-                   └────────────────────────────────┘
-```
+| Onboarding | Stats | Tray Menu |
+|:---:|:---:|:---:|
+| ![Onboarding](docs/screenshot-onboarding.png) | ![Stats](docs/screenshot-stats.png) | ![Tray](docs/screenshot-tray.png) |
 
 ---
 
-## Files
+## Features
 
-| File | Purpose |
-|------|---------|
-| `scripts/install.sh` | One-shot installer — run this first |
-| `scripts/onboarding.sh` | Interactive app selector — re-run anytime to change your list |
-| `scripts/end_of_day.sh` | Main script — triggered daily by launchd |
-
-**Config & Logs** (created on first run):
-
-| Path | Purpose |
-|------|---------|
-| `~/.config/end_of_day/apps.conf` | Your selected apps (newline-delimited) |
-| `~/Library/Logs/end_of_day/end_of_day.log` | Runtime log |
-| `~/.config/end_of_day/install.log` | Install log |
-| `~/Library/LaunchAgents/com.endofday.closeapps.plist` | Generated launchd agent |
+- **Menu bar tray** — persistent sunset icon in the top bar; no Dock clutter
+- **Custom day picker** — choose exactly which days to run (Mon, Tue, Wed…)
+- **Pause Today** — skip tonight without changing your schedule
+- **Snooze 30 min** — delay from the countdown alert or tray menu
+- **Per-app close delay** — stagger quits so apps have time to save (0–10s)
+- **Analytics** — streak, total runs, apps closed, 7-day bar chart, recent history
+- **Uninstall** — removes launchd agent + config from within the app
 
 ---
 
-## Change Your App List
+## Install
+
+**Option 1 — Download release**
+
+Download `EndOfDay.app.zip` from the [latest release](https://github.com/RohiRIK/end-of-day-mac/releases/latest), unzip, and double-click.
+
+**Option 2 — Build from source**
 
 ```bash
-bash scripts/onboarding.sh
+git clone https://github.com/RohiRIK/end-of-day-mac
+cd end-of-day-mac
+bash install.sh
 ```
 
-Re-runs the selection dialog and overwrites `apps.conf`. No reinstall needed.
-
-## Test Without Waiting for 18:30
-
-```bash
-bash scripts/end_of_day.sh
-```
-
-## Uninstall
-
-```bash
-launchctl bootout gui/$(id -u)/com.endofday.closeapps
-rm ~/Library/LaunchAgents/com.endofday.closeapps.plist
-rm -rf ~/.config/end_of_day
-```
+Requires Xcode Command Line Tools (`xcode-select --install`) and macOS 12+.
 
 ---
 
-## First-Run Permission Prompt
+## Usage
 
-On first execution macOS will ask:
+| Action | How |
+|--------|-----|
+| First-time setup | Run `install.sh` or double-click the app |
+| Change apps / schedule | Double-click the app |
+| Pause tonight | Tray icon → Pause Today |
+| Snooze | Tray icon → Snooze 30 min |
+| View stats | Tray icon → View Stats… |
+| Run now | Tray icon → Run Now |
+| Uninstall | Double-click app → Uninstall… |
 
-> *"Terminal" wants to control "System Events"*
+---
 
-Allow it in **System Settings › Privacy & Security › Automation**.
-This is a one-time prompt.
+## How it works
+
+1. `install.sh` compiles the Swift sources and opens the setup wizard
+2. Pick a trigger time + which apps to close + which days to run
+3. A launchd agent (`com.endofday.closeapps`) starts `EndOfDay --menubar` at login with `KeepAlive: true`
+4. The tray app runs all day with an internal Timer — no polling overhead
+5. At trigger time → 30s countdown alert → close apps → log to analytics
+
+**Config:** `~/.config/end_of_day/config.json`
+**Analytics:** `~/.config/end_of_day/analytics.json`
+**Logs:** `~/Library/Logs/end_of_day/end_of_day.log`
+
+---
+
+## Requirements
+
+- macOS 12+
+- Xcode Command Line Tools (`xcode-select --install`)
